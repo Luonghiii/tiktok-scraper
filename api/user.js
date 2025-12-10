@@ -1,22 +1,32 @@
-// Import thư viện từ file đã build trong repo
-// Tớ trỏ vào '../build/index.js' vì trong package.json, main file nằm ở đó
 const TikTokScraper = require('../build/index.js');
 
 module.exports = async (req, res) => {
-    // Lấy tên user từ đường dẫn (ví dụ: ?username=tiktok)
-    const { username } = req.query;
+    // 1. Lấy username và cookie từ đường link (nếu có)
+    const { username, session } = req.query;
 
     if (!username) {
-        return res.status(400).json({ error: 'Cần nhập tên username!' });
+        return res.status(400).json({ error: 'Thiếu username rồi cậu ơi!' });
     }
 
     try {
-        // Gọi hàm lấy thông tin profile (không cần login cho info cơ bản)
-        const user = await TikTokScraper.getUserProfileInfo(username, {});
-        
-        // Trả về kết quả dạng JSON đẹp đẽ
+        // 2. Cấu hình giả lập trình duyệt (Quan trọng!)
+        const options = {
+            // Giả làm máy tính Windows đang dùng Chrome
+            headers: {
+                "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36",
+                "referer": "https://www.tiktok.com/",
+            },
+            // Nếu cậu truyền cookie vào thì dùng, không thì thôi
+            sessionList: session ? [`sid_tt=${session}`] : []
+        };
+
+        const user = await TikTokScraper.getUserProfileInfo(username, options);
         res.status(200).json(user);
+
     } catch (error) {
-        res.status(500).json({ error: 'Lỗi rồi: ' + error.message });
+        res.status(500).json({ 
+            error: 'Vẫn lỗi: ' + error.message,
+            tip: 'Thử thêm &session=... vào link xem sao!'
+        });
     }
 };
